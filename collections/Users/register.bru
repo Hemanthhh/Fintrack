@@ -1,0 +1,21 @@
+meta {
+  name: register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{url}}/api/users/register
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "username" : "hemanth",
+    "firstname" : "hemanth varma",
+    "lastname" : "emmadi",
+    "email" : "hemanthvarma995@gmail.com",
+    "password" : "password"
+  }
+}

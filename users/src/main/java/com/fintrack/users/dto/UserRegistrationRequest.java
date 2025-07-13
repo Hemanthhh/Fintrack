@@ -11,11 +11,11 @@ public record UserRegistrationRequest(
 
         @NotBlank(message = "FirstName is required")
         @Size(min = 3, max = 20)
-        String firstName,
+        String firstname,
 
         @NotBlank(message = "LastName is required")
         @Size(min = 1, max = 20)
-        String lastName,
+        String lastname,
 
         @NotBlank(message = "Email is required")
         @Email(message = "Email should be valid")

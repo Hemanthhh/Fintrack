@@ -1,6 +1,5 @@
 package com.fintrack.users.service;
 
-import com.fintrack.users.config.ApplicationConfig;
 import com.fintrack.users.config.JwtTokenService;
 import com.fintrack.users.dto.UserLoginRequest;
 import com.fintrack.users.dto.UserLoginResponse;
@@ -9,9 +8,12 @@ import com.fintrack.users.dto.UserResponse;
 import com.fintrack.users.model.User;
 import com.fintrack.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import static org.springframework.security.core.userdetails.User.withUsername;
 import java.util.Date;
 
 @Service
@@ -19,8 +21,9 @@ import java.util.Date;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final ApplicationConfig applicationConfig;
+    private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     public UserResponse register(UserRegistrationRequest request) {
@@ -36,7 +39,7 @@ public class UserServiceImpl implements UserService {
         var user = User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(applicationConfig.passwordEncoder().encode(request.password()))
+                .password(passwordEncoder.encode(request.password()))
                 .createdAt(new Date())
                 .build();
 
@@ -54,15 +57,12 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
 
         // Validate password
-        if (!applicationConfig.passwordEncoder().matches(request.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // Create UserDetails (using Spring Security's User)
-        UserDetails userDetails = withUsername(user.getUsername())
-                .password(user.getPassword())
-                .authorities("USER") // or fetch roles if you have them
-                .build();
+        // Use the existing UserDetailsService to get UserDetails
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
 
         // Generate JWT token
         String token = jwtTokenService.generateToken(userDetails);
@@ -73,15 +73,19 @@ public class UserServiceImpl implements UserService {
                 user.getId().toString(),
                 user.getUsername(),
                 user.getEmail());
-
     }
 
     @Override
     public UserResponse getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         return new UserResponse(
-                "currentUserId",
-                "currentUsername",
-                "currentEmail");
-
+                user.getId().toString(),
+                user.getUsername(),
+                user.getEmail());
     }
 }
