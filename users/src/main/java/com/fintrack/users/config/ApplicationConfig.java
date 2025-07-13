@@ -12,7 +12,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import static org.springframework.security.core.userdetails.User.withUsername;
+import org.springframework.security.core.userdetails.User;
+
 
 @Configuration
 @RequiredArgsConstructor
@@ -26,7 +27,8 @@ public class ApplicationConfig {
             var user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
 
-            return withUsername(user.getUsername())
+            return User.builder()
+                    .username(user.getUsername())
                     .password(user.getPassword())
                     .authorities("USER")
                     .build();
